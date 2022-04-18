@@ -1,3 +1,5 @@
+import zipfile
+
 import nextcord
 from nextcord.ext import commands, menus
 import tokens as tk
@@ -7,7 +9,7 @@ nest_asyncio.apply()
 import pdfretreive
 import asyncio
 import os
-
+from zipfile import ZipFile
 DiscordToken = tk.DiscordToken
 
 client = commands.Bot(command_prefix="!cpc ")
@@ -31,17 +33,29 @@ async def get(client, *message):
     url = message[0]
     #pth = asyncio.gather(pdfretreive.main(url))
     await client.send("Received Request - PDF takes a few seconds to generate please be patient!")
-    pth = MuseScraper().to_pdf(url = url, output = "./pdf")
+
+    pth = MuseScraper().to_pdf(url = url)
+    MuseScraper().close()
+    # except Exception as e:
+    #     print(e.__traceback__)
+    #     await client.send("Something went wrong with the download process! Please try again later")
     title = pth.name.split(".")[0]
 
     embedVar = nextcord.Embed(title="Piece Requested", description=title)
-    embedVar.add_field(name = "Url", value = message[0])
-    embedVar.set_image(url = "https://cdn.discordapp.com/attachments/908217476511305739/964651362317127760/unknown.png")
+    embedVar.add_field(name="URL", value=message[0])
+    embedVar.set_image(
+        url="https://cdn.discordapp.com/attachments/908217476511305739/964651362317127760/unknown.png")
     await client.send(embed=embedVar)
-    with open(pth, 'rb') as fp:
-        await client.send(file=nextcord.File(fp, title + ".pdf"))
+
+    zipObj = ZipFile(title + ".zip", 'w', zipfile.ZIP_DEFLATED)
+
+    zipObj.write(title + ".pdf")
+    zipObj.close()
+    with open(title + ".zip", 'rb') as fp:
+        await client.send(file=nextcord.File(fp, title + ".zip"))
     os.remove(pth)
-    MuseScraper.close()
+    os.remove(title + ".zip")
+
 
 
 
